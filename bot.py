@@ -141,7 +141,7 @@ class TelegramBot:
 
     def run(self):
         self.db.init_db()
-        base_path = "/lessons/"
+        base_path = "/lessons"
         self.db.load_lessons_from_files(base_path)
         quiz_links = {
             "JavaScript":"https://itproger.com/test/javascript#google_vignette",
