@@ -1,0 +1,2 @@
+pyTeleBot
+python-docx
