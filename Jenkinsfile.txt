@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+
+    environment {
+        PYTHONUNBUFFERED = '1'
+    }
+
+    stages {
+        stage('Клон репозиторію') {
+            steps {
+                git url: 'https://github.com/твій-юзернейм/твій-репозиторій.git'
+            }
+        }
+
+        stage('Створення віртуального середовища') {
+            steps {
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Запуск бота') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    python main.py
+                '''
+            }
+        }
+    }
+}
