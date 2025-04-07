@@ -8,16 +8,20 @@ pipeline {
     }
 
     stages {
+        stage('Перевірка наявності requirements.txt') {
+            steps {
+                script {
+                    if (!fileExists('requirements.txt')) {
+                        error 'Файл requirements.txt відсутній! Зупиняю pipeline.'
+                    }
+                }
+            }
+        }
+
         stage('Створення віртуального середовища') {
             steps {
                 script {
-                    if (!fileExists('venv')) {
-                        bat """
-                            ${PYTHON_PATH} -m venv venv
-                        """
-                    } else {
-                        echo 'Віртуальне середовище вже існує.'
-                    }
+                    bat "if not exist venv ( ${PYTHON_PATH} -m venv venv )"
                 }
             }
         }
@@ -45,6 +49,5 @@ pipeline {
                 '''
             }
         }
-
     }
 }
