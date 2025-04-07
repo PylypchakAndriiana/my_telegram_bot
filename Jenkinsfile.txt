@@ -6,12 +6,6 @@ pipeline {
     }
 
     stages {
-        stage('Клон репозиторію') {
-            steps {
-                git url: 'https://github.com/PylypchakAndriiana/my_telegram_bot.git'
-            }
-        }
-
         stage('Створення віртуального середовища') {
             steps {
                 bat '''
