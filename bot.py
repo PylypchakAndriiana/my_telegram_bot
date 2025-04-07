@@ -2,6 +2,10 @@ import telebot
 from config import TOKEN
 from database import Database
 import time
+import logging
+
+# Налаштування логування
+logging.basicConfig(level=logging.DEBUG)
 
 class TelegramBot:
     def __init__(self, token):
@@ -15,13 +19,15 @@ class TelegramBot:
         for i in range(retries):
             try:
                 self.bot.send_message(chat_id, text)
+                logging.debug(f"Повідомлення надіслано на {chat_id}")
                 return
             except Exception as e:
-                print(f"Помилка при надсиланні повідомлення: {e}. Спроба {i+1} з {retries}")
+                logging.error(f"Помилка при надсиланні повідомлення: {e}. Спроба {i+1} з {retries}")
                 time.sleep(5)  # Зачекати перед наступною спробою
-        print(f"Не вдалося надіслати повідомлення після {retries} спроб")
+        logging.error(f"Не вдалося надіслати повідомлення після {retries} спроб")
 
     def send_welcome(self, message):
+        logging.debug("Надсилаю привітальне повідомлення")
         self.bot.send_message(message.chat.id, 'Вітаю! Я Ваш персональний довідник з програмування. '
                                                'Перш ніж розпочати, давайте познайомитись! Як до Вас звертатися?')
         self.bot.register_next_step_handler(message, self.get_user_name)
@@ -30,9 +36,11 @@ class TelegramBot:
         user_name = message.text
         self.user_data[message.chat.id] = {'name': user_name}
         self.db.save_user_name(message.chat.id, user_name)
+        logging.debug(f"Ім’я користувача {user_name} збережено в базі даних")
         self.bot.send_message(message.chat.id, f'{user_name}, пропоную ознайомитись із опціями боту, у цьому Вам допоможе команда /help.')
 
     def send_help(self, message):
+        logging.debug("Надсилаю допомогу")
         self.bot.send_message(message.chat.id, 'Щоб нам з тобою поладнати потрібно правила завчати та інструкції читати! \n'
                                                'Отож:\n'
                                                '/languages - дає можливість обрати мову з якою хочете працювати далі\n'
@@ -41,7 +49,8 @@ class TelegramBot:
                                                '/exit - завершує роботу з ботом')
 
     def list_languages(self, message):
-        markup =telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True)
+        logging.debug("Надсилаю список мов програмування")
+        markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True)
         for lang in self.languages:
             markup.add(lang)
         self.bot.send_message(message.chat.id, 'Оберіть мову програмування:', reply_markup=markup)
@@ -64,6 +73,7 @@ class TelegramBot:
         self.show_lesson_list(message, lang)
 
     def show_lesson_list(self, message, lang):
+        logging.debug(f"Завантажую уроки для мови {lang}")
         lessons = self.db.get_lesson_list(lang)
         if not lessons:
             self.bot.send_message(message.chat.id, f'Вибачте, але наразі немає уроків для мови {lang}.')
@@ -140,9 +150,13 @@ class TelegramBot:
         self.bot.message_handler(commands=['exit'])(self.exit_bot)
 
     def run(self):
+        logging.debug("Ініціалізація бази даних")
         self.db.init_db()
+        
+        logging.debug("Завантаження уроків з файлів")
         base_path = "/lessons"
         self.db.load_lessons_from_files(base_path)
+        
         quiz_links = {
             "JavaScript": "https://itproger.com/test/javascript#google_vignette",
             "Java": "https://itproger.com/practice/java",
@@ -151,15 +165,17 @@ class TelegramBot:
             "C#": "https://itproger.com/practice/csharp",
             "SQL": "https://itproger.com/practice/sql",
         }
+        logging.debug("Завантаження тестів")
         self.db.load_quizzes(quiz_links)
-    
+
         # Видалити вебхук перед запуском polling
         self.bot.delete_webhook()
-    
+
         # Запуск polling
+        logging.debug("Запуск polling")
         self.bot.polling(none_stop=True)
 
 if __name__ == "__main__":
+    logging.debug("Запуск бота")
     telegram_bot = TelegramBot(TOKEN)
     telegram_bot.run()
-
