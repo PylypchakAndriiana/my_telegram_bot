@@ -33,7 +33,7 @@ pipeline {
 
         stage('Видалення вебхука') {
             steps {
-                bat 'venv\\Scripts\\python.exe -c "import telebot, config; bot = telebot.TeleBot(config.TOKEN); bot.delete_webhook()"'
+                bat "venv\\Scripts\\python.exe -c \"import telebot, config; bot = telebot.TeleBot(config.TOKEN); bot.delete_webhook()\""
             }
         }
 
