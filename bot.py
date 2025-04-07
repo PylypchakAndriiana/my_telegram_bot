@@ -139,25 +139,25 @@ class TelegramBot:
         self.bot.message_handler(commands=['quiz'])(self.start_quiz)
         self.bot.message_handler(commands=['exit'])(self.exit_bot)
 
-   def run(self):
-    self.db.init_db()
-    base_path = "/lessons"
-    self.db.load_lessons_from_files(base_path)
-    quiz_links = {
-        "JavaScript":"https://itproger.com/test/javascript#google_vignette",
-        "Java": "https://itproger.com/practice/java",
-        "Python": "https://itproger.com/practice/python",
-        "C++": "https://itproger.com/practice/cpp",
-        "C#": "https://itproger.com/practice/csharp",
-        "SQL": "https://itproger.com/practice/sql",
-    }
-    self.db.load_quizzes(quiz_links)
+    def run(self):
+        self.db.init_db()
+        base_path = "/lessons"
+        self.db.load_lessons_from_files(base_path)
+        quiz_links = {
+            "JavaScript": "https://itproger.com/test/javascript#google_vignette",
+            "Java": "https://itproger.com/practice/java",
+            "Python": "https://itproger.com/practice/python",
+            "C++": "https://itproger.com/practice/cpp",
+            "C#": "https://itproger.com/practice/csharp",
+            "SQL": "https://itproger.com/practice/sql",
+        }
+        self.db.load_quizzes(quiz_links)
     
-    # Видаляємо вебхук перед початком polling
-    self.bot.delete_webhook()
-
-    # Запускаємо polling
-    self.bot.polling(none_stop=True)
+        # Видалити вебхук перед запуском polling
+        self.bot.delete_webhook()
+    
+        # Запуск polling
+        self.bot.polling(none_stop=True)
 
 if __name__ == "__main__":
     telegram_bot = TelegramBot(TOKEN)
