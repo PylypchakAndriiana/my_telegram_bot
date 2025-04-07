@@ -39,8 +39,12 @@ pipeline {
 
         stage('Запуск бота') {
             steps {
-                bat 'venv\\Scripts\\python.exe bot.py'
+                bat '''
+                    chcp 65001
+                    venv\\Scripts\\python.exe bot.py
+                '''
             }
         }
+
     }
 }
