@@ -21,7 +21,7 @@ pipeline {
             steps {
                 bat '''
                     call venv\\Scripts\\activate
-                    python bot.py
+                    python main.py
                 '''
             }
         }
