@@ -3,21 +3,17 @@ pipeline {
 
     environment {
         PYTHONUNBUFFERED = '1'
-        VENV_PATH = 'venv\\Scripts\\activate'  // Шлях до активації віртуального середовища
         PYTHON_PATH = "C:\\Users\\User\\AppData\\Local\\Programs\\Python\\Python313\\python.exe"
+        VENV_PYTHON = "venv\\Scripts\\python.exe"
     }
 
     stages {
         stage('Створення віртуального середовища') {
             steps {
                 script {
-                    // Якщо віртуальне середовище вже існує, пропускаємо створення
                     if (!fileExists('venv')) {
                         bat """
                             ${PYTHON_PATH} -m venv venv
-                            call venv\\Scripts\\activate
-                            pip install --upgrade pip
-                            pip install -r requirements.txt
                         """
                     } else {
                         echo 'Віртуальне середовище вже існує.'
@@ -26,12 +22,18 @@ pipeline {
             }
         }
 
-        stage('Запуск бота') {
+        stage('Встановлення залежностей') {
             steps {
                 bat '''
-                    call venv\\Scripts\\activate
-                    python bot.py
+                    venv\\Scripts\\python.exe -m pip install --upgrade pip
+                    venv\\Scripts\\python.exe -m pip install -r requirements.txt
                 '''
+            }
+        }
+
+        stage('Запуск бота') {
+            steps {
+                bat 'venv\\Scripts\\python.exe bot.py'
             }
         }
     }
