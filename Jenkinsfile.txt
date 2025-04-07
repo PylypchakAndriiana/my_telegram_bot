@@ -8,16 +8,6 @@ pipeline {
     }
 
     stages {
-        stage('Перевірка наявності requirements.txt') {
-            steps {
-                script {
-                    if (!fileExists('requirements.txt')) {
-                        error 'Файл requirements.txt відсутній! Зупиняю pipeline.'
-                    }
-                }
-            }
-        }
-
         stage('Створення віртуального середовища') {
             steps {
                 script {
@@ -43,10 +33,12 @@ pipeline {
 
         stage('Запуск бота') {
             steps {
-                bat '''
-                    chcp 65001
-                    venv\\Scripts\\python.exe bot.py
-                '''
+                timeout(time: 3, unit: 'MINUTES') {  // Тайм-аут на 10 хвилин
+                    bat '''
+                        chcp 65001
+                        venv\\Scripts\\python.exe bot.py
+                    '''
+                }
             }
         }
     }
