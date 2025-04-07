@@ -12,6 +12,7 @@ pipeline {
             steps {
                 script {
                     if (!fileExists('venv')) {
+                        echo 'Створення віртуального середовища...'
                         bat """
                             ${PYTHON_PATH} -m venv venv
                         """
@@ -24,6 +25,7 @@ pipeline {
 
         stage('Встановлення залежностей') {
             steps {
+                echo 'Встановлення залежностей...'
                 bat '''
                     venv\\Scripts\\python.exe -m pip install --upgrade pip
                     venv\\Scripts\\python.exe -m pip install -r requirements.txt
@@ -31,10 +33,26 @@ pipeline {
             }
         }
 
+        stage('Видалення вебхука Telegram') {
+            steps {
+                echo 'Видалення вебхука Telegram перед запуском polling...'
+                bat '''
+                    venv\\Scripts\\python.exe -c "import telebot; bot = telebot.TeleBot('TOKEN'); bot.delete_webhook()"
+                '''
+            }
+        }
+
         stage('Запуск бота') {
             steps {
+                echo 'Запуск бота...'
                 bat 'venv\\Scripts\\python.exe bot.py'
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Процес завершено.'
         }
     }
 }
