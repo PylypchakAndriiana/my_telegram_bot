@@ -9,7 +9,7 @@ pipeline {
         stage('Створення віртуального середовища') {
             steps {
                 bat '''
-                    "C:\Users\User\AppData\Local\Microsoft\WindowsApps\python.exe" -m venv venv
+                    "C:\\Users\\User\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe" -m venv venv
                     call venv\\Scripts\\activate
                     pip install --upgrade pip
                     pip install -r requirements.txt
