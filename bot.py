@@ -197,7 +197,11 @@ class TelegramBot:
 
             if self.check_connection():
                 logging.debug("Видалення вебхука")
-                self.bot.delete_webhook()
+                try:
+                    self.bot.delete_webhook()
+                    logging.debug("Вебхук видалено")
+                except Exception as e:
+                    logging.warning(f" Не вдалося видалити webhook: {e}")
 
                 logging.debug("Запуск polling")
                 self.bot.polling(
