@@ -170,7 +170,7 @@ class TelegramBot:
         self.bot.message_handler(commands=['quiz'])(self.start_quiz)
         self.bot.message_handler(commands=['exit'])(self.exit_bot)
 
-    def check_connection(self, host="api.telegram.org", port=443):
+   def check_connection(self, host="api.telegram.org", port=443):
         try:
             with socket.create_connection((host, port), timeout=5):
                 logging.debug("З’єднання з Telegram API встановлено")
@@ -196,10 +196,10 @@ class TelegramBot:
             })
 
             if self.check_connection():
-                logging.debug("Видалення вебхука")
                 try:
+                    logging.debug("Видалення вебхука")
                     self.bot.delete_webhook()
-                    logging.debug("Вебхук видалено")
+                    logging.debug("Вебхук успішно видалено")
                 except Exception as e:
                     logging.warning(f" Не вдалося видалити webhook: {e}")
 
