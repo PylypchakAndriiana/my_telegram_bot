@@ -5,12 +5,13 @@ import time
 import logging
 import sys
 import io
+import socket
 
 # Примусове встановлення UTF-8 для stdout/stderr
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-# Налаштування логування з виводом у консоль
+# Налаштування логування
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -57,7 +58,6 @@ class TelegramBot:
         )
 
     def send_help(self, message):
-        logging.debug("Надсилаю інструкції користувачу")
         self.bot.send_message(message.chat.id, (
             'Щоб нам з тобою поладнати потрібно правила завчати та інструкції читати! \n'
             'Отож:\n'
@@ -68,7 +68,6 @@ class TelegramBot:
         ))
 
     def list_languages(self, message):
-        logging.debug("Надсилаю список мов")
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True)
         for lang in self.languages:
             markup.add(lang)
@@ -84,61 +83,54 @@ class TelegramBot:
                 f'Ви обрали {chosen_language}. Для перегляду уроків скористайтесь командою /lesson.'
             )
         else:
-            self.bot.send_message(
-                message.chat.id,
-                'Такої мови немає в списку. Будь ласка, спробуйте знову.'
-            )
+            self.bot.send_message(message.chat.id, 'Такої мови немає. Спробуйте ще раз.')
             self.list_languages(message)
 
     def choose_lesson(self, message):
         if message.chat.id not in self.user_data or 'language' not in self.user_data[message.chat.id]:
-            self.bot.send_message(
-                message.chat.id,
-                'Будь ласка, спочатку оберіть мову програмування за допомогою /languages.'
-            )
+            self.bot.send_message(message.chat.id, 'Оберіть мову командою /languages.')
             return
         lang = self.user_data[message.chat.id]['language']
         self.show_lesson_list(message, lang)
 
     def show_lesson_list(self, message, lang):
-        logging.debug(f"Завантажую список уроків для {lang}")
         lessons = self.db.get_lesson_list(lang)
         if not lessons:
-            self.bot.send_message(message.chat.id, f'Наразі немає уроків для мови {lang}.')
+            self.bot.send_message(message.chat.id, f'Немає уроків для мови {lang}.')
             return
         lesson_list = "\n".join([f"{i+1}. {lesson[1]}" for i, lesson in enumerate(lessons)])
         self.bot.send_message(
             message.chat.id,
-            f'Уроки для {lang}:\n{lesson_list}\nВведіть номер уроку, який хочете переглянути.'
+            f'Уроки для {lang}:\n{lesson_list}\nВведіть номер уроку.'
         )
         self.bot.register_next_step_handler(message, self.show_lesson, lessons, lang)
 
     def show_lesson(self, message, lessons, lang):
         try:
-            lesson_index = int(message.text) - 1
-            if 0 <= lesson_index < len(lessons):
-                lesson_parts = self.db.get_lesson(lang, lesson_index + 1)
-                if lesson_parts:
-                    for part in lesson_parts:
+            index = int(message.text) - 1
+            if 0 <= index < len(lessons):
+                parts = self.db.get_lesson(lang, index + 1)
+                if parts:
+                    for part in parts:
                         self.send_message_with_retry(message.chat.id, part)
                     self.bot.send_message(
                         message.chat.id,
                         'Щоб продовжити натисніть /continue. Для тесту /quiz. Щоб вийти /exit.'
                     )
-                    self.user_data[message.chat.id]['lesson_index'] = lesson_index
+                    self.user_data[message.chat.id]['lesson_index'] = index
                 else:
                     self.bot.send_message(message.chat.id, 'Урок не знайдено.')
             else:
-                self.bot.send_message(message.chat.id, 'Неправильний номер уроку. Спробуйте ще раз.')
+                self.bot.send_message(message.chat.id, 'Неправильний номер. Спробуйте ще.')
                 self.bot.register_next_step_handler(message, self.show_lesson, lessons, lang)
         except ValueError:
-            self.bot.send_message(message.chat.id, 'Введіть цифру уроку:')
+            self.bot.send_message(message.chat.id, 'Введіть цифру:')
             self.bot.register_next_step_handler(message, self.show_lesson, lessons, lang)
 
     def continue_lesson(self, message):
         data = self.user_data.get(message.chat.id, {})
         if 'language' not in data or 'lesson_index' not in data:
-            self.bot.send_message(message.chat.id, 'Спочатку оберіть мову за допомогою /languages.')
+            self.bot.send_message(message.chat.id, 'Оберіть мову за допомогою /languages.')
             return
         lang = data['language']
         index = data['lesson_index'] + 1
@@ -153,24 +145,21 @@ class TelegramBot:
             )
             self.user_data[message.chat.id]['lesson_index'] = index
         else:
-            self.bot.send_message(
-                message.chat.id,
-                'Це був останній урок. Для тесту натисніть /quiz, для виходу /exit.'
-            )
+            self.bot.send_message(message.chat.id, 'Це був останній урок. /quiz або /exit.')
 
     def start_quiz(self, message):
         lang = self.user_data.get(message.chat.id, {}).get('language')
         if not lang:
-            self.bot.send_message(message.chat.id, 'Спочатку оберіть мову за допомогою /languages.')
+            self.bot.send_message(message.chat.id, 'Оберіть мову за допомогою /languages.')
             return
         quiz_link = self.db.get_quiz(lang)
         if quiz_link:
-            self.bot.send_message(message.chat.id, f'Ось ваше посилання на тест:\n{quiz_link}')
+            self.bot.send_message(message.chat.id, f'Ось посилання на тест:\n{quiz_link}')
         else:
-            self.bot.send_message(message.chat.id, f'Тестів для {lang} наразі немає.')
+            self.bot.send_message(message.chat.id, f'Тестів для {lang} немає.')
 
     def exit_bot(self, message):
-        self.bot.send_message(message.chat.id, 'Дякуємо за використання! До нових зустрічей.')
+        self.bot.send_message(message.chat.id, 'Дякуємо за використання! До зустрічі ')
 
     def register_handlers(self):
         self.bot.message_handler(commands=['start'])(self.send_welcome)
@@ -181,26 +170,51 @@ class TelegramBot:
         self.bot.message_handler(commands=['quiz'])(self.start_quiz)
         self.bot.message_handler(commands=['exit'])(self.exit_bot)
 
+    def check_connection(self, host="api.telegram.org", port=443):
+        try:
+            with socket.create_connection((host, port), timeout=5):
+                logging.debug("З’єднання з Telegram API встановлено")
+                return True
+        except Exception as e:
+            logging.error(f" Немає з’єднання з Telegram API: {e}")
+            return False
+
     def run(self):
-        logging.debug("Ініціалізація бази даних")
-        self.db.init_db()
+        try:
+            logging.debug("Ініціалізація бази даних")
+            self.db.init_db()
 
-        logging.debug("Завантаження уроків і тестів")
-        self.db.load_lessons_from_files("/lessons")
-        self.db.load_quizzes({
-            "JavaScript": "https://itproger.com/test/javascript#google_vignette",
-            "Java": "https://itproger.com/practice/java",
-            "Python": "https://itproger.com/practice/python",
-            "C++": "https://itproger.com/practice/cpp",
-            "C#": "https://itproger.com/practice/csharp",
-            "SQL": "https://itproger.com/practice/sql",
-        })
+            logging.debug("Завантаження уроків і тестів")
+            self.db.load_lessons_from_files("/lessons")
+            self.db.load_quizzes({
+                "JavaScript": "https://itproger.com/test/javascript#google_vignette",
+                "Java": "https://itproger.com/practice/java",
+                "Python": "https://itproger.com/practice/python",
+                "C++": "https://itproger.com/practice/cpp",
+                "C#": "https://itproger.com/practice/csharp",
+                "SQL": "https://itproger.com/practice/sql",
+            })
 
-        self.bot.delete_webhook()
-        logging.debug("Запуск polling")
-        self.bot.polling(none_stop=True)
+            if self.check_connection():
+                logging.debug("Видалення вебхука")
+                self.bot.delete_webhook()
+
+                logging.debug("Запуск polling")
+                self.bot.polling(
+                    none_stop=True,
+                    interval=0,
+                    timeout=20,
+                    long_polling_timeout=30
+                )
+            else:
+                logging.error(" Неможливо підключитися до Telegram API. Завершення.")
+                sys.exit(1)
+
+        except Exception as e:
+            logging.exception(f" Виникла помилка при запуску бота: {e}")
+            sys.exit(1)
 
 if __name__ == "__main__":
     logging.debug("Запуск Telegram бота")
-    telegram_bot = TelegramBot(TOKEN)
-    telegram_bot.run()
+    bot = TelegramBot(TOKEN)
+    bot.run()
